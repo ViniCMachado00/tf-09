@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+#Meu ambiente virtual criou essas aqui em baixo, precisei improvisar!
+/bin/
+/include/
+/lib/
+/lib64
+/pyvenv.cfg
+venv/
