@@ -129,25 +129,23 @@ class Pasta(Item):
         for filho in self.__filhos:
             filho.mostrar()
 
-
-# HERANÇA E POLIMORFISMO: representa um atalho para outro item.
+# HERANÇA: representa um item que aponta para outro item da árvore.
 class Atalho(Item):
-    """Representa um item que aponta para outro item."""
-
     __slots__ = ("__destino",)
 
     def __init__(self, nome, destino, pai=None):
-        """Inicializa o atalho usando a validação de redirecionar."""
+        """Cria o atalho e valida o destino usando redirecionar."""
+        self.__destino = None
         super().__init__(nome, pai)
         self.redirecionar(destino)
 
     @property
     def destino(self):
-        """Retorna o destino sem permitir alteração direta."""
+        """Permite consultar o destino sem alterá-lo diretamente."""
         return self.__destino
 
     def redirecionar(self, novo_destino):
-        """Valida e atualiza o destino do atalho."""
+        """Troca o destino somente se ele não criar uma referência proibida."""
         if novo_destino is self:
             raise ValueError("um atalho não pode apontar para si mesmo")
 
@@ -162,14 +160,13 @@ class Atalho(Item):
         self.__destino = novo_destino
 
     def tamanho(self):
-        """Retorna um byte, independentemente do destino."""
+        """Retorna um byte, independentemente do tamanho do destino."""
         return 1
 
     def mostrar(self):
-        """Exibe o nome do atalho e o caminho do destino."""
+        """Mostra o nome do atalho e o caminho do item de destino."""
         recuo = "    " * self.profundidade()
         print(recuo + self.nome + " -> " + self.destino.caminho())
-
 
 # Outra classe que assina o contrato SEM ser da árvore: a Lixeira.
 class Lixeira(Medivel):
@@ -202,31 +199,49 @@ def tentar(rotulo, acao):
         print(rotulo, "-> passou (!)")
     except Exception as erro:
         print(rotulo, "->", type(erro).__name__ + ":", erro)
+        
 
-
+# TESTES: monta uma árvore com arquivos, pastas e atalhos.
 disco = Pasta("C:")
 usuarios = Pasta("Users", disco)
-desktop = Pasta("Desktop", usuarios)
+vinicius = Pasta("vinicius", usuarios)
+desktop = Pasta("Desktop", vinicius)
 trabalhos = Pasta("Trabalhos", desktop)
-notas = Arquivo("notas.txt", 120, desktop)
-tf = Arquivo("tf-09.py", 800, trabalhos)
-slide = Arquivo("slide.pdf", 5000, trabalhos)
 
-disco.mostrar()
-print(tf.caminho())                       # C:/Users/Desktop/Trabalhos/tf-09.py
-print(disco.tamanho())                    # 5920
+notas = Arquivo("notas.txt", 120, desktop)
+slide = Arquivo("slide.pdf", 5000, trabalhos)
+resumo = Arquivo("resumo.txt", 300, trabalhos)
+
+atalho_arquivo = Atalho("atalho_notas", notas, desktop)
+pasta_com_atalho = Pasta("PastaComAtalho", desktop)
+atalho_pasta = Atalho("atalho_trabalhos", trabalhos, pasta_com_atalho)
 
 lixeira = Lixeira()
-lixeira.descartar(Arquivo("rascunho.txt", 40))
-print(espaco_total([notas, trabalhos, lixeira]))   # 120 + 5800 + 40 = 5960
+lixeira.descartar(Arquivo("descartado.txt", 50))
 
-tentar("Item('x')", lambda: Item("x"))
-tentar("Medivel()", lambda: Medivel())
-tentar("Arquivo dentro de arquivo", lambda: Arquivo("a.txt", 1, tf))
-tentar("tf.pai = None", lambda: setattr(tf, "pai", None))
-tentar("tf.altura = 1.70", lambda: setattr(tf, "altura", 1.70))
-tentar("usuarios p/ dentro de si", lambda: usuarios.mover_para(trabalhos))
+# Exibe a árvore completa.
+print("\nÁrvore com atalhos:")
+disco.mostrar()
 
-tf.mover_para(desktop)
-print(tf.caminho())                       # C:/Users/Desktop/tf-09.py
-print(len(trabalhos.filhos), len(desktop.filhos))
+# Soma um arquivo, uma pasta com atalho e uma lixeira.
+print("\nEspaço total:", espaco_total([
+    notas,
+    pasta_com_atalho,
+    lixeira
+]))
+
+# Testes que devem falhar.
+tentar(
+    "Alterar destino diretamente",
+    lambda: setattr(atalho_arquivo, "destino", resumo)
+)
+
+tentar(
+    "Atalho apontando para si mesmo",
+    lambda: atalho_arquivo.redirecionar(atalho_arquivo)
+)
+
+tentar(
+    "Atalho apontando para a pasta que o contém",
+    lambda: atalho_pasta.redirecionar(pasta_com_atalho)
+)
